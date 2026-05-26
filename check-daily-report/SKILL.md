@@ -17,7 +17,7 @@ user-invocable: true
 {
   "url": "https://docs.qq.com/sheet/<file_id>?tab=<sheet_id>",
   "group": "业务平台组",
-  "exclude": ["林峰"]
+  "exclude": ["张三"]
 }
 ```
 

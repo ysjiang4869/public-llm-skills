@@ -13,6 +13,19 @@ import csv, io, json, os, re, sys
 from datetime import datetime
 
 
+def load_config():
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    config_path = os.path.join(script_dir, '..', 'config.json')
+    try:
+        with open(config_path, encoding='utf-8') as f:
+            return json.load(f)
+    except FileNotFoundError:
+        return {}
+    except json.JSONDecodeError as e:
+        print(f"ERROR: config.json parse error: {e}", file=sys.stderr)
+        sys.exit(1)
+
+
 def main():
     date_arg = sys.argv[1] if len(sys.argv) > 1 else None
     if date_arg:
@@ -40,7 +53,8 @@ def main():
         print("ERROR: Empty data", file=sys.stderr)
         sys.exit(1)
 
-    group = os.environ.get("REPORT_GROUP", "业务平台组")
+    cfg = load_config()
+    group = os.environ.get("REPORT_GROUP") or cfg.get("group", "业务平台组")
 
     rows = list(csv.reader(io.StringIO(csv_text)))
     if not rows:
