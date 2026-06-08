@@ -1,6 +1,6 @@
 ---
 name: check-daily-report
-description: "检查业务平台组当日日报填写情况，输出未填写成员名单。腾讯文档地址从 config.json 读取。"
+description: "检查指定小组当日日报填写情况，输出未填写成员名单。"
 allowed-tools: ["exec"]
 user-invocable: true
 ---
@@ -11,7 +11,7 @@ user-invocable: true
 
 ## 配置
 
-编辑技能目录下的 `config.json`：
+在 **用户级配置文件** `~/.claude/skill-config/check-daily-report.json` 中设置（该文件不在本技能目录内，不随仓库分发，每个用户在本机维护一份）：
 
 ```json
 {
@@ -21,26 +21,27 @@ user-invocable: true
 }
 ```
 
-- `url`：腾讯文档链接
-- `group`：要检查的小组名称
-- `exclude`：不参与检查的成员列表
+- `url`：腾讯文档链接（必需，没有通用默认值；也可临时通过对话/`--url` 覆盖，或用环境变量 `DAILY_REPORT_URL`）
+- `group`：要检查的小组名称（优先级：对话中指定 > 环境变量 `REPORT_GROUP` > 此配置 > 内置默认值 `"业务平台组"`）
+- `exclude`：不参与检查的成员列表（仅从此配置读取）
 
 ## 使用方式
 
-用户说明要检查的日期（不说则默认今天）：
+用户说明要检查的日期（不说则默认今天），也可临时指定小组/链接：
 - "检查今天的日报"
 - "看看5.21谁没填日报"
-- "日报填写情况"
+- "查一下运营组的日报情况"
 
 ## 执行步骤
 
 ```bash
-python3 "$(dirname "$0")/scripts/check_daily.py" "<DATE>"
+python3 "$(dirname "$0")/scripts/check_daily.py" "<DATE>" [--group="<GROUP>"] [--url="<URL>"]
 ```
 
-`<DATE>` 为用户指定日期，格式 `M.DD`（如 `5.21`）；未指定则不传参，脚本默认使用今天。
+- `<DATE>`：用户指定日期，格式 `M.DD`（如 `5.21`）；未指定则不传参，脚本默认使用今天
+- `--group` / `--url`：仅在用户对话中明确指定了小组名 / 链接时才传入，否则省略，让脚本按配置文件/默认值解析
 
-脚本会自动读取 `config.json`，调用 mcporter 获取数据并完成检查。
+脚本会自动读取用户级配置文件，调用 mcporter 获取数据并完成检查。若未配置 `url` 且对话中也未提供，脚本会报错并提示如何配置。
 
 ## 输出格式
 

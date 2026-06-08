@@ -1,33 +1,60 @@
 #!/usr/bin/env python3
 """
 Check which members haven't filled in their daily report.
-Config is read from config.json in the parent directory.
 
-Usage: python3 check_daily.py [DATE]
+Usage: python3 check_daily.py [DATE] [--group=GROUP] [--url=URL]
   DATE format: M.DD (e.g. 5.21), defaults to today
+
+Resolution order:
+  url:     --url flag > DAILY_REPORT_URL env var > user config
+           (~/.claude/skill-config/check-daily-report.json) — required, no built-in default
+  group:   --group flag > REPORT_GROUP env var > user config > "业务平台组"
+  exclude: user config only (list of names to skip)
 """
 
-import csv, io, json, os, re, subprocess, sys
+import argparse, csv, io, json, os, re, subprocess, sys
 from datetime import datetime
+
+USER_CONFIG_PATH = os.path.expanduser('~/.claude/skill-config/check-daily-report.json')
+
+
+def load_user_config():
+    try:
+        with open(USER_CONFIG_PATH, encoding='utf-8') as f:
+            return json.load(f)
+    except FileNotFoundError:
+        return {}
+    except json.JSONDecodeError as e:
+        print(f"ERROR: {USER_CONFIG_PATH} 解析失败: {e}", file=sys.stderr)
+        sys.exit(1)
 
 
 def main():
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    config_path = os.path.join(script_dir, '..', 'config.json')
+    parser = argparse.ArgumentParser()
+    parser.add_argument('date', nargs='?', help='M.DD, defaults to today')
+    parser.add_argument('--group', help='override the configured group for this run')
+    parser.add_argument('--url', help='override the configured tencent-docs URL for this run')
+    args = parser.parse_args()
 
-    with open(config_path) as f:
-        config = json.load(f)
+    user_config = load_user_config()
 
-    url = config['url']
+    url = args.url or os.environ.get('DAILY_REPORT_URL') or user_config.get('url')
+    if not url:
+        print(
+            f"ERROR: 未配置腾讯文档链接。请在 {USER_CONFIG_PATH} 中设置 \"url\"，"
+            "或在对话中提供链接（脚本会以 --url 接收）。",
+            file=sys.stderr,
+        )
+        sys.exit(1)
     m = re.match(r'https://docs\.qq\.com/sheet/([^?#]+).*[?&]tab=([^&#]+)', url)
     if not m:
         print(f"ERROR: 无法解析 URL: {url}", file=sys.stderr)
         sys.exit(1)
     file_id, sheet_id = m.group(1), m.group(2)
-    group = config.get('group', '业务平台组')
-    exclude = set(config.get('exclude', []))
+    group = args.group or os.environ.get('REPORT_GROUP') or user_config.get('group', '业务平台组')
+    exclude = set(user_config.get('exclude', []))
 
-    date_arg = sys.argv[1] if len(sys.argv) > 1 else None
+    date_arg = args.date
     if date_arg:
         dm = re.match(r'^(\d{1,2})\.(\d{1,2})$', date_arg)
         if not dm:

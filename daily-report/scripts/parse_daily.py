@@ -4,30 +4,40 @@ Parse tencent-docs sheet CSV, output raw daily text per member.
 
 Usage:
   mcporter call tencent-docs sheet.get_cell_data \
-    --args '...' | python3 parse_daily.py [DATE]
+    --args '...' | python3 parse_daily.py [DATE] [--group=GROUP]
 
-  DATE format: M.DD (e.g. 5.21), defaults to today
+  DATE format: M.DD (e.g. 5.21), defaults to today.
+  --group overrides the configured group for this run (e.g. when the user
+  names a different group in conversation).
+
+Group resolution order: --group flag > REPORT_GROUP env var > user config
+(~/.claude/skill-config/daily-report.json) > built-in default "业务平台组".
 """
 
-import csv, io, json, os, re, sys
+import argparse, csv, io, json, os, re, sys
 from datetime import datetime
 
+USER_CONFIG_PATH = os.path.expanduser('~/.claude/skill-config/daily-report.json')
 
-def load_config():
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    config_path = os.path.join(script_dir, '..', 'config.json')
+
+def load_user_config():
     try:
-        with open(config_path, encoding='utf-8') as f:
+        with open(USER_CONFIG_PATH, encoding='utf-8') as f:
             return json.load(f)
     except FileNotFoundError:
         return {}
     except json.JSONDecodeError as e:
-        print(f"ERROR: config.json parse error: {e}", file=sys.stderr)
+        print(f"ERROR: {USER_CONFIG_PATH} 解析失败: {e}", file=sys.stderr)
         sys.exit(1)
 
 
 def main():
-    date_arg = sys.argv[1] if len(sys.argv) > 1 else None
+    parser = argparse.ArgumentParser()
+    parser.add_argument('date', nargs='?', help='M.DD, defaults to today')
+    parser.add_argument('--group', help='override the configured group for this run')
+    args = parser.parse_args()
+
+    date_arg = args.date
     if date_arg:
         m = re.match(r'^(\d{1,2})\.(\d{1,2})$', date_arg)
         if not m:
@@ -53,8 +63,8 @@ def main():
         print("ERROR: Empty data", file=sys.stderr)
         sys.exit(1)
 
-    cfg = load_config()
-    group = os.environ.get("REPORT_GROUP") or cfg.get("group", "业务平台组")
+    user_config = load_user_config()
+    group = args.group or os.environ.get("REPORT_GROUP") or user_config.get("group", "业务平台组")
 
     rows = list(csv.reader(io.StringIO(csv_text)))
     if not rows:
