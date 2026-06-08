@@ -11,10 +11,11 @@ user-invocable: true
 
 ## 配置
 
-`base_url` / `owner` / `repo` 按以下优先级解析（不需要时可全部省略，使用内置默认值）：
+`base_url` / `owner` / `repo` 按以下优先级解析（都不需要时可全部省略，使用内置默认值）：
 
-1. 环境变量：`GITLAB_BASE_URL` / `GITLAB_OWNER` / `GITLAB_REPO`
-2. 用户级配置文件 `~/.claude/skill-config/gitlab-issue.json`：
+1. **对话中指定**：用户明确说了要查的仓库/实例时（如"看一下 OTHER/another-repo 的 issue 5"），传 `--owner=OTHER --repo=another-repo`
+2. 环境变量：`GITLAB_BASE_URL` / `GITLAB_OWNER` / `GITLAB_REPO`
+3. 用户级配置文件 `~/.claude/skill-config/gitlab-issue.json`：
    ```json
    {
      "base_url": "http://git.komect.net",
@@ -22,7 +23,7 @@ user-invocable: true
      "repo": "robot-common"
    }
    ```
-3. 内置默认值（`http://git.komect.net` / `HROBOT` / `robot-common`）
+4. 内置默认值（`http://git.komect.net` / `HROBOT` / `robot-common`）
 
 > 用户级配置文件不在本技能目录内，不随仓库分发，每个用户按自己的需要在本机维护。
 
@@ -39,14 +40,16 @@ export GITLAB_TOKEN=your_token_here
 用户提供 issue ID，例如：
 - "看一下 issue 123 的评论"
 - "拉取 issue #456 的内容，有没有附件"
+- "查一下 OTHER/another-repo 仓库 issue 5 的评论"（指定了非默认仓库）
 
 ## 执行步骤
 
 ```bash
-python3 "$(dirname "$0")/scripts/process_issue.py" <ISSUE_ID>
+python3 "$(dirname "$0")/scripts/process_issue.py" <ISSUE_ID> [--owner=<OWNER> --repo=<REPO>] [--base-url=<URL>]
 ```
 
-`<ISSUE_ID>` 为用户指定的 issue 编号（数字）。
+- `<ISSUE_ID>`：用户指定的 issue 编号（数字）
+- `--owner` / `--repo` / `--base-url`：仅在用户对话中明确指定了非默认的仓库/实例时才传入，否则省略，让脚本按环境变量/配置文件/默认值解析
 
 ## 输出格式
 

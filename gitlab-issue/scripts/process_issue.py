@@ -3,13 +3,14 @@
 Fetch a GitLab issue and its comments, sort by creation time, and list
 attachment links (markdown images, /uploads/ paths) found in each comment.
 
-Usage: python3 process_issue.py <issue_id>
+Usage: python3 process_issue.py <issue_id> [--base-url URL] [--owner OWNER] [--repo REPO]
 
-base_url/owner/repo resolution order: env var (GITLAB_BASE_URL/GITLAB_OWNER/
-GITLAB_REPO) > user config (~/.claude/skill-config/gitlab-issue.json) >
-built-in default below. GITLAB_TOKEN must come from the environment — never
+base_url/owner/repo resolution order: CLI flag > env var (GITLAB_BASE_URL/
+GITLAB_OWNER/GITLAB_REPO) > user config (~/.claude/skill-config/gitlab-issue.json)
+> built-in default below. GITLAB_TOKEN must come from the environment — never
 persist a token to a config file.
 """
+import argparse
 import json
 import os
 import re
@@ -41,8 +42,8 @@ def load_user_config():
         sys.exit(1)
 
 
-def resolve(key, env_name, user_config):
-    return os.environ.get(env_name) or user_config.get(key) or DEFAULTS[key]
+def resolve(cli_value, key, env_name, user_config):
+    return cli_value or os.environ.get(env_name) or user_config.get(key) or DEFAULTS[key]
 
 
 def api_get(base_url, token, path):
@@ -122,16 +123,19 @@ def format_result(issue, comments):
 
 
 def main():
-    if len(sys.argv) < 2:
-        print("Usage: process_issue.py <issue_id>", file=sys.stderr)
-        sys.exit(1)
-    issue_id = sys.argv[1]
+    parser = argparse.ArgumentParser()
+    parser.add_argument('issue_id', help='GitLab issue ID')
+    parser.add_argument('--base-url', help='override the GitLab base URL for this run')
+    parser.add_argument('--owner', help='override the project owner/namespace for this run')
+    parser.add_argument('--repo', help='override the project name for this run')
+    args = parser.parse_args()
 
     user_config = load_user_config()
-    base_url = resolve('base_url', 'GITLAB_BASE_URL', user_config)
-    owner = resolve('owner', 'GITLAB_OWNER', user_config)
-    repo = resolve('repo', 'GITLAB_REPO', user_config)
+    base_url = resolve(args.base_url, 'base_url', 'GITLAB_BASE_URL', user_config)
+    owner = resolve(args.owner, 'owner', 'GITLAB_OWNER', user_config)
+    repo = resolve(args.repo, 'repo', 'GITLAB_REPO', user_config)
     project = urllib.parse.quote(f"{owner}/{repo}", safe='')
+    issue_id = args.issue_id
 
     token = os.environ.get('GITLAB_TOKEN', '')
     if not token:

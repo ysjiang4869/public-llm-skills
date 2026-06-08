@@ -2,14 +2,14 @@
 """
 Check which members haven't filled in their daily report.
 
-Usage: python3 check_daily.py [DATE] [--group=GROUP] [--url=URL]
+Usage: python3 check_daily.py [DATE] [--group=GROUP] [--url=URL] [--exclude=NAME1,NAME2]
   DATE format: M.DD (e.g. 5.21), defaults to today
 
 Resolution order:
   url:     --url flag > DAILY_REPORT_URL env var > user config
            (~/.claude/skill-config/check-daily-report.json) — required, no built-in default
   group:   --group flag > REPORT_GROUP env var > user config > "业务平台组"
-  exclude: user config only (list of names to skip)
+  exclude: --exclude flag (comma-separated, replaces the list for this run) > user config
 """
 
 import argparse, csv, io, json, os, re, subprocess, sys
@@ -34,6 +34,7 @@ def main():
     parser.add_argument('date', nargs='?', help='M.DD, defaults to today')
     parser.add_argument('--group', help='override the configured group for this run')
     parser.add_argument('--url', help='override the configured tencent-docs URL for this run')
+    parser.add_argument('--exclude', help='comma-separated names to skip for this run (overrides configured list)')
     args = parser.parse_args()
 
     user_config = load_user_config()
@@ -52,7 +53,10 @@ def main():
         sys.exit(1)
     file_id, sheet_id = m.group(1), m.group(2)
     group = args.group or os.environ.get('REPORT_GROUP') or user_config.get('group', '业务平台组')
-    exclude = set(user_config.get('exclude', []))
+    if args.exclude is not None:
+        exclude = set(n.strip() for n in args.exclude.split(',') if n.strip())
+    else:
+        exclude = set(user_config.get('exclude', []))
 
     date_arg = args.date
     if date_arg:
