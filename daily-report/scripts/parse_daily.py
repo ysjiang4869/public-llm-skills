@@ -7,36 +7,15 @@ Usage:
     --args '...' | python3 parse_daily.py [DATE] [--group=GROUP]
 
   DATE format: M.DD (e.g. 5.21), defaults to today.
-  --group overrides the configured group for this run (e.g. when the user
-  names a different group in conversation).
+  --group overrides the group for this run (e.g. when the user names a
+  different group in conversation).
 
-Group resolution order: --group flag > REPORT_GROUP env var > user config.
-User config is read from ~/.config/skill-config/daily-report.json (the legacy
-~/.claude/skill-config/daily-report.json is still honored as a fallback).
+Group resolution order: --group flag > REPORT_GROUP env var. Error out with
+guidance when neither is given.
 """
 
 import argparse, csv, io, json, os, re, sys
 from datetime import datetime
-
-CONFIG_PATHS = [
-    os.path.expanduser(p) for p in (
-        '~/.config/skill-config/daily-report.json',
-        '~/.claude/skill-config/daily-report.json',  # legacy fallback
-    )
-]
-
-
-def load_user_config():
-    for path in CONFIG_PATHS:
-        try:
-            with open(path, encoding='utf-8') as f:
-                return json.load(f)
-        except FileNotFoundError:
-            continue
-        except json.JSONDecodeError as e:
-            print(f"ERROR: {path} 解析失败: {e}", file=sys.stderr)
-            sys.exit(1)
-    return {}
 
 
 def main():
@@ -71,12 +50,10 @@ def main():
         print("ERROR: Empty data", file=sys.stderr)
         sys.exit(1)
 
-    user_config = load_user_config()
-    group = args.group or os.environ.get("REPORT_GROUP") or user_config.get("group")
+    group = args.group or os.environ.get("REPORT_GROUP")
     if not group:
         print(
-            'ERROR: 未指定小组名。请通过 --group 参数、环境变量 REPORT_GROUP '
-            '或用户级配置文件中的 "group" 字段指定。',
+            "ERROR: 未指定小组名。请通过 --group 参数或环境变量 REPORT_GROUP 指定。",
             file=sys.stderr,
         )
         sys.exit(1)

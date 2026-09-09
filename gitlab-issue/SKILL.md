@@ -7,39 +7,24 @@ description: "拉取指定 GitLab Issue 及其全部评论，按创建时间排�
 
 拉取指定 GitLab Issue 的详情和全部评论，按创建时间排序，并提取每条评论中的附件链接。
 
-## 配置
+## 参数
 
-GitLab 实例与仓库通过 `base_url` / `owner` / `repo` 指定（三者均必需，无内置默认值），按以下优先级解析：
+| 参数 | 说明 |
+|---|---|
+| `<ISSUE_ID>` | issue 编号（数字） |
+| `--base-url` | GitLab 实例地址；未指定时回退环境变量 `GITLAB_BASE_URL` |
+| `--owner` | 项目所属 namespace；未指定时回退环境变量 `GITLAB_OWNER` |
+| `--repo` | 项目名；未指定时回退环境变量 `GITLAB_REPO` |
+| 环境变量 `GITLAB_TOKEN` | **必需**。GitLab 个人访问令牌。令牌属于敏感信息，只能通过环境变量传入，不要写进任何文件 |
 
-1. **对话中指定**：用户明确说了要查的仓库/实例时（如“看一下 OTHER/another-repo 的 issue 5”），传 `--owner=OTHER --repo=another-repo`
-2. 环境变量：`GITLAB_BASE_URL` / `GITLAB_OWNER` / `GITLAB_REPO`
-3. 用户级配置文件 `~/.config/skill-config/gitlab-issue.json`（旧路径 `~/.claude/skill-config/` 仍兼容读取）：
-   ```json
-   {
-     "base_url": "https://gitlab.example.com",
-     "owner": "<namespace>",
-     "repo": "<project>"
-   }
-   ```
-
-任一项三层都没有时，脚本会报错并提示配置方式。
-
-> 用户级配置文件不在本技能目录内，不随仓库分发，每个用户按自己的需要在本机维护。
-
-## 环境变量（必需）
-
-需要设置 `GITLAB_TOKEN`（GitLab 个人访问令牌，用于 API 鉴权）。**令牌属于敏感信息，只能通过环境变量传入，不要写进任何配置文件**：
-
-```bash
-export GITLAB_TOKEN=your_token_here
-```
+`base_url` / `owner` / `repo` 最终无值时脚本报错。
 
 ## 使用方式
 
 用户提供 issue ID，例如：
 - "看一下 issue 123 的评论"
 - "拉取 issue #456 的内容，有没有附件"
-- "查一下 OTHER/another-repo 仓库 issue 5 的评论"（指定了非默认仓库）
+- "查一下 OTHER/another-repo 仓库 issue 5 的评论"（指定了仓库）
 
 ## 执行步骤
 
@@ -47,8 +32,7 @@ export GITLAB_TOKEN=your_token_here
 python3 scripts/process_issue.py <ISSUE_ID> [--owner=<OWNER> --repo=<REPO>] [--base-url=<URL>]
 ```
 
-- `<ISSUE_ID>`：用户指定的 issue 编号（数字）
-- `--owner` / `--repo` / `--base-url`：仅在用户对话中明确指定了仓库/实例时才传入，否则省略，让脚本按环境变量/配置文件解析
+`--owner` / `--repo` / `--base-url` 在对话中明确了实例/仓库时传入，否则依赖环境变量。
 
 ## 输出格式
 

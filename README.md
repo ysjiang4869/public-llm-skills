@@ -26,19 +26,11 @@ ln -s ~/Code/public-llm-skills/worklog-filler ~/.claude/skills/worklog-filler
 
 其他客户端（如 Codex、OpenCode 等）按各自文档，将技能目录放入其对应的 skills 路径。
 
-## 用户级配置
+## 参数与环境变量
 
-含外部服务依赖的技能（daily-report、check-daily-report、gitlab-issue）从用户级配置文件读取默认值，配置文件**不在本仓库内**，每人在本机维护一份：
+技能不读取任何配置文件。参数在运行时从对话中提取，通过 CLI 参数传给脚本；常用默认值可通过环境变量提供（如 `REPORT_GROUP`、`DAILY_REPORT_URL`、`GITLAB_BASE_URL` / `GITLAB_OWNER` / `GITLAB_REPO`），详见各技能 `SKILL.md` 的参数说明。
 
-```
-~/.config/skill-config/daily-report.json       # {"url": "...", "group": "..."}
-~/.config/skill-config/check-daily-report.json # {"url": "...", "group": "...", "exclude": [...]}
-~/.config/skill-config/gitlab-issue.json       # {"base_url": "...", "owner": "...", "repo": "..."}
-```
-
-旧路径 `~/.claude/skill-config/` 仍兼容读取，新路径优先。各字段的优先级（对话中指定 > 环境变量 > 配置文件）见各技能的 `SKILL.md`。
-
-敏感信息（如 `GITLAB_TOKEN`）只通过环境变量传入，不要写进任何配置文件。
+敏感信息（如 `GITLAB_TOKEN`）只通过环境变量传入，不要写进任何文件。
 
 ## License
 

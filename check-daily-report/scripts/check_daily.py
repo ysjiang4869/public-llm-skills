@@ -6,36 +6,13 @@ Usage: python3 check_daily.py [DATE] [--group=GROUP] [--url=URL] [--exclude=NAME
   DATE format: M.DD (e.g. 5.21), defaults to today
 
 Resolution order:
-  url:     --url flag > DAILY_REPORT_URL env var > user config — required, no built-in default
-  group:   --group flag > REPORT_GROUP env var > user config — required, no built-in default
-  exclude: --exclude flag (comma-separated, replaces the list for this run) > user config
-
-User config is read from ~/.config/skill-config/check-daily-report.json (the legacy
-~/.claude/skill-config/check-daily-report.json is still honored as a fallback).
+  url:     --url flag > DAILY_REPORT_URL env var — required
+  group:   --group flag > REPORT_GROUP env var — required
+  exclude: --exclude flag (comma-separated names to skip)
 """
 
 import argparse, csv, io, json, os, re, subprocess, sys
 from datetime import datetime
-
-CONFIG_PATHS = [
-    os.path.expanduser(p) for p in (
-        '~/.config/skill-config/check-daily-report.json',
-        '~/.claude/skill-config/check-daily-report.json',  # legacy fallback
-    )
-]
-
-
-def load_user_config():
-    for path in CONFIG_PATHS:
-        try:
-            with open(path, encoding='utf-8') as f:
-                return json.load(f)
-        except FileNotFoundError:
-            continue
-        except json.JSONDecodeError as e:
-            print(f"ERROR: {path} 解析失败: {e}", file=sys.stderr)
-            sys.exit(1)
-    return {}
 
 
 def main():
@@ -46,13 +23,10 @@ def main():
     parser.add_argument('--exclude', help='comma-separated names to skip for this run (overrides configured list)')
     args = parser.parse_args()
 
-    user_config = load_user_config()
-
-    url = args.url or os.environ.get('DAILY_REPORT_URL') or user_config.get('url')
+    url = args.url or os.environ.get('DAILY_REPORT_URL')
     if not url:
         print(
-            f"ERROR: 未配置腾讯文档链接。请在 {CONFIG_PATHS[0]} 中设置 \"url\"，"
-            "或通过环境变量 DAILY_REPORT_URL、--url 参数指定。",
+            "ERROR: 未配置腾讯文档链接。请通过 --url 参数或环境变量 DAILY_REPORT_URL 指定。",
             file=sys.stderr,
         )
         sys.exit(1)
@@ -61,18 +35,17 @@ def main():
         print(f"ERROR: 无法解析 URL: {url}", file=sys.stderr)
         sys.exit(1)
     file_id, sheet_id = m.group(1), m.group(2)
-    group = args.group or os.environ.get('REPORT_GROUP') or user_config.get('group')
+    group = args.group or os.environ.get('REPORT_GROUP')
     if not group:
         print(
-            'ERROR: 未指定小组名。请通过 --group 参数、环境变量 REPORT_GROUP '
-            '或用户级配置文件中的 "group" 字段指定。',
+            "ERROR: 未指定小组名。请通过 --group 参数或环境变量 REPORT_GROUP 指定。",
             file=sys.stderr,
         )
         sys.exit(1)
     if args.exclude is not None:
         exclude = set(n.strip() for n in args.exclude.split(',') if n.strip())
     else:
-        exclude = set(user_config.get('exclude', []))
+        exclude = set()
 
     date_arg = args.date
     if date_arg:
