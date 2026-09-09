@@ -6,27 +6,36 @@ Usage: python3 check_daily.py [DATE] [--group=GROUP] [--url=URL] [--exclude=NAME
   DATE format: M.DD (e.g. 5.21), defaults to today
 
 Resolution order:
-  url:     --url flag > DAILY_REPORT_URL env var > user config
-           (~/.claude/skill-config/check-daily-report.json) — required, no built-in default
-  group:   --group flag > REPORT_GROUP env var > user config > "业务平台组"
+  url:     --url flag > DAILY_REPORT_URL env var > user config — required, no built-in default
+  group:   --group flag > REPORT_GROUP env var > user config — required, no built-in default
   exclude: --exclude flag (comma-separated, replaces the list for this run) > user config
+
+User config is read from ~/.config/skill-config/check-daily-report.json (the legacy
+~/.claude/skill-config/check-daily-report.json is still honored as a fallback).
 """
 
 import argparse, csv, io, json, os, re, subprocess, sys
 from datetime import datetime
 
-USER_CONFIG_PATH = os.path.expanduser('~/.claude/skill-config/check-daily-report.json')
+CONFIG_PATHS = [
+    os.path.expanduser(p) for p in (
+        '~/.config/skill-config/check-daily-report.json',
+        '~/.claude/skill-config/check-daily-report.json',  # legacy fallback
+    )
+]
 
 
 def load_user_config():
-    try:
-        with open(USER_CONFIG_PATH, encoding='utf-8') as f:
-            return json.load(f)
-    except FileNotFoundError:
-        return {}
-    except json.JSONDecodeError as e:
-        print(f"ERROR: {USER_CONFIG_PATH} 解析失败: {e}", file=sys.stderr)
-        sys.exit(1)
+    for path in CONFIG_PATHS:
+        try:
+            with open(path, encoding='utf-8') as f:
+                return json.load(f)
+        except FileNotFoundError:
+            continue
+        except json.JSONDecodeError as e:
+            print(f"ERROR: {path} 解析失败: {e}", file=sys.stderr)
+            sys.exit(1)
+    return {}
 
 
 def main():
@@ -42,8 +51,8 @@ def main():
     url = args.url or os.environ.get('DAILY_REPORT_URL') or user_config.get('url')
     if not url:
         print(
-            f"ERROR: 未配置腾讯文档链接。请在 {USER_CONFIG_PATH} 中设置 \"url\"，"
-            "或在对话中提供链接（脚本会以 --url 接收）。",
+            f"ERROR: 未配置腾讯文档链接。请在 {CONFIG_PATHS[0]} 中设置 \"url\"，"
+            "或通过环境变量 DAILY_REPORT_URL、--url 参数指定。",
             file=sys.stderr,
         )
         sys.exit(1)
@@ -52,7 +61,14 @@ def main():
         print(f"ERROR: 无法解析 URL: {url}", file=sys.stderr)
         sys.exit(1)
     file_id, sheet_id = m.group(1), m.group(2)
-    group = args.group or os.environ.get('REPORT_GROUP') or user_config.get('group', '业务平台组')
+    group = args.group or os.environ.get('REPORT_GROUP') or user_config.get('group')
+    if not group:
+        print(
+            'ERROR: 未指定小组名。请通过 --group 参数、环境变量 REPORT_GROUP '
+            '或用户级配置文件中的 "group" 字段指定。',
+            file=sys.stderr,
+        )
+        sys.exit(1)
     if args.exclude is not None:
         exclude = set(n.strip() for n in args.exclude.split(',') if n.strip())
     else:

@@ -1,37 +1,34 @@
 ---
 name: worklog-filler
-description: Fill a monthly R&D support workload statistics report from a daily work log Excel file. Use this skill when the user provides a daily report Excel (工作日报) and a statistics/workload report Excel (工作量统计表), and wants to extract their daily work items, split them by requirement type, and fill in the stats report automatically. Triggered by phrases like "填写工作量统计表", "从日报填写量表", "拆解工作量记录" etc.
+description: "从工作日报 Excel 中提取指定人员每日工作条目，按需求类型智能拆分归类并折算人天，写入月度工作量统计表。当用户提供日报 Excel 和工作量统计表，要求“填写工作量统计表”“从日报拆解/填写工作量”等时使用。"
 ---
 
-# Worklog Filler
+# 工作量统计表填写
 
-## Overview
+## 概述
 
-Extract a named person's daily work entries from a structured daily report Excel file, intelligently split and categorize each work item into allowed requirement types (读取下拉限制), then write the resulting records into the monthly workload statistics report.
+从结构化的工作日报 Excel 中提取指定人员的每日工作条目，将每条工作按统计表允许的需求类型（读取下拉限制）智能拆分归类，折算人天后写入月度工作量统计表。
 
+## 工作流程
 
+### 第 1 步：收集输入
 
-## Workflow
+若用户未提供，向其确认以下信息：
+- `daily_report_path`：日报 Excel 路径（如 xxx部门工作日报.xlsx）
+- `stats_report_path`：工作量统计表 Excel 路径（如 26年2月-研发支撑工作量统计表.xlsx）
+- `person_name`：要处理的人员中文姓名（如 张三）
+- `year_month`：要处理的月份，如 `2026-02`（可从文件名推断，否则询问）
+- `stats_sheet`：统计表中的 sheet 名（默认：自动检测包含“研发支撑”的 sheet）
 
-### Step 1: Gather inputs
+### 第 2 步：提取日报工作条目
 
-To run this skill, require the following from the user if not already provided:
-- `daily_report_path`: path to the daily report Excel (e.g. xxx部门工作日报.xlsx)
-- `stats_report_path`: path to the statistics report Excel (e.g. 26年2月-研发支撑工作量统计表.xlsx)
-- `person_name`: the person's Chinese name (e.g. 张三)
-- `year_month`: the month to process, e.g. `2026-02` (infer from filename or ask)
-- `stats_sheet`: sheet name in the stats report (default: detect automatically — look for a sheet containing "研发支撑")
-
-### Step 2: Extract daily work entries
-
-Run the extraction script to get all non-holiday work entries for the person:
+运行提取脚本，获取该人员当月所有非节假日工作条目（依赖 pandas）：
 
 ```bash
-python3 ~/.claude/skills/worklog-filler/scripts/extract_worklog.py \
-  "<daily_report_path>" "<person_name>" "<year_month>"
+python3 scripts/extract_worklog.py "<daily_report_path>" "<person_name>" "<year_month>"
 ```
 
-The script outputs a JSON array of objects:
+脚本输出 JSON 数组：
 ```json
 [
   {
@@ -43,36 +40,35 @@ The script outputs a JSON array of objects:
 ]
 ```
 
-### Step 3: Read stats report metadata
+### 第 3 步：读取统计表元数据
 
-Run the metadata script to get the allowed requirement type options and existing data:
+运行元数据脚本，获取允许的需求类型选项和现有数据（依赖 openpyxl）：
 
 ```bash
-python3 ~/.claude/skills/worklog-filler/scripts/read_stats_meta.py \
-  "<stats_report_path>" "<stats_sheet>"
+python3 scripts/read_stats_meta.py "<stats_report_path>" "<stats_sheet>"
 ```
 
-Output:
+输出：
 ```json
 {
-  "req_types": ["线上问题定位", "需求评审", "功能优化", ...],
-  "groups": ["运营平台组", "业务平台组", ...],
+  "req_types": ["线上问题定位", "需求评审", "功能优化"],
+  "groups": ["组A", "组B"],
   "first_empty_row": 2
 }
 ```
 
-### Step 4: Categorize and split work items
+### 第 4 步：归类并拆分工作条目
 
-For each day's items, group them by requirement type and assign time (人天). Follow these rules:
+对每天的条目按需求类型分组并折算人天，遵循以下规则：
 
-**Grouping**: Items of the same type on the same day → merge into one record. Different types → separate records.
+**归类**：同一天同类型的条目合并为一条记录；不同类型拆成多条。
 
-**Time allocation**: Each working day = 1.0 person-day total. Split proportionally among records for that day based on item count and complexity. Use increments of 0.1. Sum per day must equal 1.0.
+**人天折算**：每个工作日合计 1.0 人天，按条目数量和复杂度在当天的各记录间按比例分配，步长 0.1，每天总和必须等于 1.0。
 
-**Requirement type mapping** — map work content to the closest allowed type from `req_types`:
+**需求类型映射** —— 把工作内容映射到最接近的允许类型：
 
-| Work content keywords | Map to |
-|----------------------|--------|
+| 工作内容关键词 | 映射到 |
+|---|---|
 | 开发、实现、重构、编码、自测 | 功能优化 |
 | 需求评审、需求讨论、接口评审、方案讨论 | 需求评审 / 接口设计及评审 / 需求及方案讨论 |
 | 版本发布、上线、发版、发布准备 | 上线准备 |
@@ -84,30 +80,29 @@ For each day's items, group them by requirement type and assign time (人天). F
 | 测试、用例 | 测试支撑 / 测试用例评审 |
 | 演示、支撑 | 演示支撑 |
 
-Always choose from the actual `req_types` list returned in Step 3. Never invent new types.
+始终从第 3 步返回的实际 `req_types` 列表中选择，禁止发明新类型。
 
-**Output format** — produce a JSON array of records:
+**输出格式** —— 生成 JSON 数组：
 ```json
 [
   {"date": "2026-02-02", "req_type": "功能优化", "description": "quic协议开发：调整为rpc对接，开发进度30%", "hours": 0.5},
-  {"date": "2026-02-02", "req_type": "需求及方案讨论", "description": "四足版本延期情况对齐；1.22.2版本发布准备", "hours": 0.5}
+  {"date": "2026-02-02", "req_type": "需求及方案讨论", "description": "版本延期情况对齐；1.22.2版本发布准备", "hours": 0.5}
 ]
 ```
 
-### Step 5: Write records to stats report
+### 第 5 步：写入统计表
 
-Save the JSON array to a temp file, then run:
+把 JSON 数组保存到临时文件后运行写入脚本（依赖 openpyxl）：
 
 ```bash
-python3 ~/.claire/skills/worklog-filler/scripts/write_records.py \
-  "<stats_report_path>" /tmp/worklog_records.json "<stats_sheet>"
+python3 scripts/write_records.py "<stats_report_path>" /tmp/worklog_records.json "<stats_sheet>"
 ```
 
-Or pass JSON inline as second argument if small enough.
+数据量小时也可以把 JSON 内联作为第二个参数传入。
 
-### Step 6: Verify and report
+### 第 6 步：校验并汇报
 
-After writing, read back the stats sheet with pandas to verify:
+写入后用 pandas 读回统计表核对：
 ```python
 import pandas as pd
 df = pd.read_excel(stats_path, sheet_name=sheet)
@@ -115,16 +110,15 @@ print(df[['报表年月','需求类型','具体工作任务描述','实际花费
 print(f"合计人天: {df['实际花费时间（人天）'].sum():.1f}")
 ```
 
-Report to the user:
-- Total records written
-- Total person-days
-- Breakdown by requirement type
-- Note any days with missing data (holidays, etc.)
+向用户汇报：
+- 写入的记录总数与总人天
+- 按需求类型的分布
+- 标注缺失数据的日期（节假日等）
 
-## Notes
+## 注意
 
-- The stats report columns filled are: A (报表年月), G (需求类型), H (具体工作任务描述), I (实际花费时间（人天）)
-- Other columns (部门, 团队, 产品名称, 工号, 所属小组) are left for the user to fill manually
-- Daily report sheet names are date ranges like `0202-0206`; the script handles year inference automatically
-- Days marked 休假 or 调休 are skipped
-- If the stats sheet already has data, new records are appended after existing rows
+- 填写的统计表列：A（报表年月）、G（需求类型）、H（具体工作任务描述）、I（实际花费时间（人天））
+- 其余列（部门、团队、产品名称、工号、所属小组）留给用户手动填写
+- 日报 sheet 名为日期区间（如 `0202-0206`），脚本自动推断年份
+- 标记 休假/调休 的日期自动跳过
+- 统计表已有数据时，新记录追加在现有行之后

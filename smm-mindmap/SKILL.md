@@ -74,7 +74,7 @@ description: 生成思绪思维导图（simple-mind-map）的 .smm / .json 文�
 转换：
 
 ```bash
-python3 ~/.claude/skills/smm-mindmap/scripts/outline_to_smm.py outline.md -o 复盘.smm \
+python3 scripts/outline_to_smm.py outline.md -o 复盘.smm \
   --theme classic4 --layout logicalStructure
 ```
 
@@ -103,7 +103,7 @@ python3 ~/.claude/skills/smm-mindmap/scripts/outline_to_smm.py outline.md -o 复
 ## 校验
 
 ```bash
-python3 ~/.claude/skills/smm-mindmap/scripts/validate_smm.py 复盘.smm
+python3 scripts/validate_smm.py 复盘.smm
 ```
 
 会检查：JSON 合法性、`root` 结构、`data.text` 存在、uid 唯一、`associativeLineTargets` 指向的 uid 存在、`generalization.range` 索引越界、主题/布局/形状/图标名是否为已知值。未知主题名只警告不报错（用户可能装了扩展主题）。

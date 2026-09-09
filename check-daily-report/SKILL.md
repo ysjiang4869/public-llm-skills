@@ -1,28 +1,26 @@
 ---
 name: check-daily-report
-description: "检查指定小组当日日报填写情况，输出未填写成员名单。"
-allowed-tools: ["exec"]
-user-invocable: true
+description: "检查指定小组某日腾讯文档日报的填写情况，输出未填写成员名单（有任何内容均视为已填写）。当用户问“今天谁没填日报”“检查/查看日报填写情况”等时使用。"
 ---
 
-# 业务平台组日报填写检查
+# 日报填写检查
 
-检查业务平台组指定日期日报填写情况，输出未填写成员名单。有任何内容均视为已填写。
+检查指定小组指定日期的腾讯文档日报填写情况，输出未填写成员名单。有任何内容均视为已填写。
 
 ## 配置
 
-在 **用户级配置文件** `~/.claude/skill-config/check-daily-report.json` 中设置（该文件不在本技能目录内，不随仓库分发，每个用户在本机维护一份）：
+在 **用户级配置文件** `~/.config/skill-config/check-daily-report.json` 中设置（该文件不在本技能目录内，不随仓库分发，每个用户在本机维护一份；旧路径 `~/.claude/skill-config/` 仍兼容读取）：
 
 ```json
 {
   "url": "https://docs.qq.com/sheet/<file_id>?tab=<sheet_id>",
-  "group": "业务平台组",
-  "exclude": ["张三"]
+  "group": "<小组名>",
+  "exclude": ["<不参与检查的成员>"]
 }
 ```
 
-- `url`：腾讯文档链接（优先级：对话中指定 `--url` > 环境变量 `DAILY_REPORT_URL` > 此配置；必需，没有内置默认值）
-- `group`：要检查的小组名称（优先级：对话中指定 `--group` > 环境变量 `REPORT_GROUP` > 此配置 > 内置默认值 `"业务平台组"`）
+- `url`：腾讯文档链接（优先级：对话中指定 `--url` > 环境变量 `DAILY_REPORT_URL` > 此配置；必需，无内置默认值）
+- `group`：要检查的小组名称（优先级：对话中指定 `--group` > 环境变量 `REPORT_GROUP` > 此配置；必需，无内置默认值）
 - `exclude`：不参与检查的成员列表（优先级：对话中指定 `--exclude`，会整体替换此配置中的列表 > 此配置）
 
 ## 使用方式
@@ -35,18 +33,18 @@ user-invocable: true
 ## 执行步骤
 
 ```bash
-python3 "$(dirname "$0")/scripts/check_daily.py" "<DATE>" [--group="<GROUP>"] [--url="<URL>"] [--exclude="<NAME1>,<NAME2>"]
+python3 scripts/check_daily.py "<DATE>" [--group="<GROUP>"] [--url="<URL>"] [--exclude="<NAME1>,<NAME2>"]
 ```
 
 - `<DATE>`：用户指定日期，格式 `M.DD`（如 `5.21`）；未指定则不传参，脚本默认使用今天
-- `--group` / `--url` / `--exclude`：仅在用户对话中明确提到了小组名 / 链接 / 需要临时排除的人时才传入，否则省略，让脚本按配置文件/默认值解析（`--exclude` 传入后会替换配置中的列表，而非合并）
+- `--group` / `--url` / `--exclude`：仅在用户对话中明确提到了小组名 / 链接 / 需要临时排除的人时才传入，否则省略，让脚本按配置文件/环境变量解析（`--exclude` 传入后会替换配置中的列表，而非合并）
 
-脚本会自动读取用户级配置文件，调用 mcporter 获取数据并完成检查。若未配置 `url` 且对话中也未提供，脚本会报错并提示如何配置。
+脚本会自动读取用户级配置文件，调用 mcporter（需已安装并配置 tencent-docs MCP 服务）获取数据并完成检查。若未配置 `url` / `group` 且对话中也未提供，脚本会报错并提示如何配置。
 
 ## 输出格式
 
 ```
-5月21日 业务平台组 未填写日报（共 N 人）：
+5月21日 XX组 未填写日报（共 N 人）：
 - 张三
 - 李四
 ```
@@ -54,6 +52,6 @@ python3 "$(dirname "$0")/scripts/check_daily.py" "<DATE>" [--group="<GROUP>"] [-
 若全员已填写：
 
 ```
-5月21日 业务平台组 未填写日报（共 0 人）：
+5月21日 XX组 未填写日报（共 0 人）：
 全员已填写
 ```

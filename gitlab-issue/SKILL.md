@@ -1,8 +1,6 @@
 ---
 name: gitlab-issue
-description: "拉取 GitLab Issue 及其全部评论，按时间排序并标注每条评论中的附件链接（图片、/uploads/ 文件）。"
-allowed-tools: ["exec"]
-user-invocable: true
+description: "拉取指定 GitLab Issue 及其全部评论，按创建时间排序并标注每条评论中的附件链接（图片、/uploads/ 文件）。当用户要求查看 issue 详情、拉取 issue 评论、检查评论附件时使用，如“看一下 issue 123 的评论”。"
 ---
 
 # GitLab Issue 处理
@@ -11,19 +9,20 @@ user-invocable: true
 
 ## 配置
 
-`base_url` / `owner` / `repo` 按以下优先级解析（都不需要时可全部省略，使用内置默认值）：
+GitLab 实例与仓库通过 `base_url` / `owner` / `repo` 指定（三者均必需，无内置默认值），按以下优先级解析：
 
-1. **对话中指定**：用户明确说了要查的仓库/实例时（如"看一下 OTHER/another-repo 的 issue 5"），传 `--owner=OTHER --repo=another-repo`
+1. **对话中指定**：用户明确说了要查的仓库/实例时（如“看一下 OTHER/another-repo 的 issue 5”），传 `--owner=OTHER --repo=another-repo`
 2. 环境变量：`GITLAB_BASE_URL` / `GITLAB_OWNER` / `GITLAB_REPO`
-3. 用户级配置文件 `~/.claude/skill-config/gitlab-issue.json`：
+3. 用户级配置文件 `~/.config/skill-config/gitlab-issue.json`（旧路径 `~/.claude/skill-config/` 仍兼容读取）：
    ```json
    {
-     "base_url": "http://git.komect.net",
-     "owner": "HROBOT",
-     "repo": "robot-common"
+     "base_url": "https://gitlab.example.com",
+     "owner": "<namespace>",
+     "repo": "<project>"
    }
    ```
-4. 内置默认值（`http://git.komect.net` / `HROBOT` / `robot-common`）
+
+任一项三层都没有时，脚本会报错并提示配置方式。
 
 > 用户级配置文件不在本技能目录内，不随仓库分发，每个用户按自己的需要在本机维护。
 
@@ -45,11 +44,11 @@ export GITLAB_TOKEN=your_token_here
 ## 执行步骤
 
 ```bash
-python3 "$(dirname "$0")/scripts/process_issue.py" <ISSUE_ID> [--owner=<OWNER> --repo=<REPO>] [--base-url=<URL>]
+python3 scripts/process_issue.py <ISSUE_ID> [--owner=<OWNER> --repo=<REPO>] [--base-url=<URL>]
 ```
 
 - `<ISSUE_ID>`：用户指定的 issue 编号（数字）
-- `--owner` / `--repo` / `--base-url`：仅在用户对话中明确指定了非默认的仓库/实例时才传入，否则省略，让脚本按环境变量/配置文件/默认值解析
+- `--owner` / `--repo` / `--base-url`：仅在用户对话中明确指定了仓库/实例时才传入，否则省略，让脚本按环境变量/配置文件解析
 
 ## 输出格式
 

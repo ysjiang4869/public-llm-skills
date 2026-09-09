@@ -1,63 +1,57 @@
 ---
 name: daily-report
-description: "读取腾讯文档日报表格，按日期提取指定组成员的原始日报内容。"
-allowed-tools: ["exec"]
-user-invocable: true
+description: "读取腾讯文档在线表格，按日期提取指定小组各成员的原始日报内容（姓名 + 日报原文）。当用户要求拉取/汇总/查看某天日报、提取成员日报原文时使用，如“帮我拉一下今天的日报”“查 5.21 日报”。"
 ---
 
-# 具身智能产品部日报提取
+# 日报提取（腾讯文档）
 
-读取腾讯文档在线表格中指定日期日报，输出指定组各成员原始日报内容（姓名 + 日报原文）。
+读取腾讯文档在线表格中指定日期日报，输出指定小组各成员的原始日报内容（姓名 + 日报原文）。
 
 ## 配置
 
-**腾讯文档链接** 和 **小组名** 都可以在对话中临时指定，也可以在用户级配置文件 `~/.claude/skill-config/daily-report.json` 中持久化为默认值（该文件不在本技能目录内、不随仓库分发，每个用户在本机维护一份）：
+**腾讯文档链接** 和 **小组名** 都可以在对话中临时指定，也可以在用户级配置文件 `~/.config/skill-config/daily-report.json` 中持久化为默认值（该文件不在本技能目录内、不随仓库分发，每个用户在本机维护一份；旧路径 `~/.claude/skill-config/` 仍兼容读取）：
 
 ```json
 {
   "url": "https://docs.qq.com/sheet/<file_id>?tab=<sheet_id>",
-  "group": "业务平台组"
+  "group": "<小组名>"
 }
 ```
 
 - **链接**解析优先级：对话中提供的链接 > 此配置中的 `url`（都没有则向用户询问）
-- **小组名**解析优先级：对话中指定（如"帮我拉一下运营组的日报"，传 `--group=运营组`）> 环境变量 `REPORT_GROUP` > 此配置中的 `group` > 内置默认值 `"业务平台组"`
+- **小组名**解析优先级：对话中指定（如“帮我拉一下运营组的日报”，传 `--group=运营组`）> 环境变量 `REPORT_GROUP` > 此配置中的 `group`（都没有则报错，需向用户询问后通过 `--group` 传入）
 
 ## 使用方式
 
 用户需要提供：
 1. **腾讯文档链接**：对话中给出则用对话中的；没给则查用户级配置文件里的 `url`；都没有再询问用户
 2. **日期**，如"5.21"、"今天"、"5月21号"
-3. （可选）**小组名**：对话中提到则用对话中的，否则按上面优先级解析
+3. **小组名**：对话中提到则用对话中的，否则按上面优先级解析
 
 示例：
-- "帮我拉一下今天的日报 https://docs.qq.com/sheet/DTk1jaXdLS2N0TmpU?tab=3fzlqq"
-- "查5.21日报"（链接从用户级配置读取）
-- "查一下运营组5.21的日报 https://docs.qq.com/sheet/DTk1jaXdLS2N0TmpU?tab=3fzlqq"
+- "帮我拉一下今天的日报 https://docs.qq.com/sheet/xxxx?tab=xxxx"
+- "查5.21日报"（链接和小组名从用户级配置读取）
+- "查一下运营组5.21的日报 https://docs.qq.com/sheet/xxxx?tab=xxxx"
 
 如果用户没有在对话中提供链接，且用户级配置文件里也没有 `url`，再主动询问："请提供日报腾讯文档的链接"。
 
 ## 执行步骤
 
-1. 确定要使用的链接：优先用对话中提供的 URL；若用户未提供，读取 `~/.claude/skill-config/daily-report.json` 的 `url` 字段；都没有则向用户询问。再从最终确定的 URL 中解析参数：
+1. 确定要使用的链接：优先用对话中提供的 URL；若用户未提供，读取用户级配置文件的 `url` 字段；都没有则向用户询问。再从最终确定的 URL 中解析参数：
    - `file_id`：URL path 部分，即 `https://docs.qq.com/sheet/<file_id>`
    - `sheet_id`：URL 的 `tab=` 参数值
 
-2. 执行以下命令：
+2. 调用 mcporter（需已安装并配置 tencent-docs MCP 服务）拉取表格数据，保存到临时文件，再执行本技能目录下的解析脚本：
 
 ```bash
-SKILL_DIR="$(dirname "$0")"
-TMP=$(mktemp /tmp/daily_report_XXXX.json)
-
 mcporter call tencent-docs sheet.get_cell_data \
   --args "{\"file_id\":\"<file_id>\",\"sheet_id\":\"<sheet_id>\",\"return_csv\":true,\"start_row\":0,\"end_row\":200,\"start_col\":0,\"end_col\":15}" \
-  > "$TMP"
+  > /tmp/daily_report.json
 
-python3 "$SKILL_DIR/scripts/parse_daily.py" "<DATE>" [--group="<GROUP>"] < "$TMP"
-rm -f "$TMP"
+python3 scripts/parse_daily.py "<DATE>" [--group="<GROUP>"] < /tmp/daily_report.json
 ```
 
-其中 `<DATE>` 为用户指定日期，格式 `M.DD`（如 `5.21`）；未指定则用今天日期。`--group` 仅在用户对话中明确指定了小组名时才传入，否则省略，让脚本按配置/默认值解析。
+其中 `<DATE>` 为用户指定日期，格式 `M.DD`（如 `5.21`）；未指定则用今天日期。`--group` 仅在用户对话中明确指定了小组名时才传入，否则省略，让脚本按配置/环境变量解析。
 
 ## 输出格式
 
@@ -72,7 +66,7 @@ rm -f "$TMP"
 今日完成：...
 ```
 
-不对内容做任何加工，由 Claude 后续处理。
+不对内容做任何加工，输出原文供后续处理。
 
 ## 注意
 

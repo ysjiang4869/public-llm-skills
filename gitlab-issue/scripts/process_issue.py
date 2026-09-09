@@ -6,9 +6,10 @@ attachment links (markdown images, /uploads/ paths) found in each comment.
 Usage: python3 process_issue.py <issue_id> [--base-url URL] [--owner OWNER] [--repo REPO]
 
 base_url/owner/repo resolution order: CLI flag > env var (GITLAB_BASE_URL/
-GITLAB_OWNER/GITLAB_REPO) > user config (~/.claude/skill-config/gitlab-issue.json)
-> built-in default below. GITLAB_TOKEN must come from the environment — never
-persist a token to a config file.
+GITLAB_OWNER/GITLAB_REPO) > user config — all required, no built-in defaults.
+User config is read from ~/.config/skill-config/gitlab-issue.json (the legacy
+~/.claude/skill-config/gitlab-issue.json is still honored as a fallback).
+GITLAB_TOKEN must come from the environment — never persist a token to a config file.
 """
 import argparse
 import json
@@ -22,28 +23,29 @@ import urllib.request
 IMAGE_RE = re.compile(r'!\[[^\]]*\]\(([^)]+)\)')
 UPLOADS_RE = re.compile(r'/uploads/[^\s)]+')
 
-DEFAULTS = {
-    'base_url': 'http://git.komect.net',
-    'owner': 'HROBOT',
-    'repo': 'robot-common',
-}
-
-USER_CONFIG_PATH = os.path.expanduser('~/.claude/skill-config/gitlab-issue.json')
+CONFIG_PATHS = [
+    os.path.expanduser(p) for p in (
+        '~/.config/skill-config/gitlab-issue.json',
+        '~/.claude/skill-config/gitlab-issue.json',  # legacy fallback
+    )
+]
 
 
 def load_user_config():
-    try:
-        with open(USER_CONFIG_PATH, encoding='utf-8') as f:
-            return json.load(f)
-    except FileNotFoundError:
-        return {}
-    except json.JSONDecodeError as e:
-        print(f"ERROR: {USER_CONFIG_PATH} 解析失败: {e}", file=sys.stderr)
-        sys.exit(1)
+    for path in CONFIG_PATHS:
+        try:
+            with open(path, encoding='utf-8') as f:
+                return json.load(f)
+        except FileNotFoundError:
+            continue
+        except json.JSONDecodeError as e:
+            print(f"ERROR: {path} 解析失败: {e}", file=sys.stderr)
+            sys.exit(1)
+    return {}
 
 
 def resolve(cli_value, key, env_name, user_config):
-    return cli_value or os.environ.get(env_name) or user_config.get(key) or DEFAULTS[key]
+    return cli_value or os.environ.get(env_name) or user_config.get(key)
 
 
 def api_get(base_url, token, path):
@@ -134,6 +136,15 @@ def main():
     base_url = resolve(args.base_url, 'base_url', 'GITLAB_BASE_URL', user_config)
     owner = resolve(args.owner, 'owner', 'GITLAB_OWNER', user_config)
     repo = resolve(args.repo, 'repo', 'GITLAB_REPO', user_config)
+    missing = [k for k, v in (('base_url', base_url), ('owner', owner), ('repo', repo)) if not v]
+    if missing:
+        print(
+            "ERROR: missing required config: " + ", ".join(missing) + ". "
+            "Set via CLI flags (--base-url/--owner/--repo), environment variables "
+            "(GITLAB_BASE_URL/GITLAB_OWNER/GITLAB_REPO), or the user config file.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
     project = urllib.parse.quote(f"{owner}/{repo}", safe='')
     issue_id = args.issue_id
 
