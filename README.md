@@ -9,6 +9,7 @@
 | [daily-report](daily-report/) | 按日期从腾讯文档在线表格提取指定小组成员的原始日报 | mcporter + tencent-docs MCP |
 | [check-daily-report](check-daily-report/) | 检查指定小组某日日报填写情况，输出未填写名单 | mcporter + tencent-docs MCP |
 | [gitlab-issue](gitlab-issue/) | 拉取 GitLab Issue 及评论，按时间排序并标注附件链接 | `GITLAB_TOKEN` 环境变量 |
+| [apollo-config](apollo-config/) | 通过 Apollo Portal Open API 查询、修改并发布配置 | Python 3、Apollo Consumer Token |
 | [smm-mindmap](smm-mindmap/) | 把文本大纲转成思绪思维导图（simple-mind-map）的 `.smm` 文件 | 无（Python 标准库） |
 | [worklog-filler](worklog-filler/) | 从日报 Excel 提取工作条目，按需求类型拆分归类并填写工作量统计表 | pandas、openpyxl |
 
@@ -20,6 +21,7 @@
 ln -s ~/Code/public-llm-skills/daily-report   ~/.claude/skills/daily-report
 ln -s ~/Code/public-llm-skills/check-daily-report ~/.claude/skills/check-daily-report
 ln -s ~/Code/public-llm-skills/gitlab-issue   ~/.claude/skills/gitlab-issue
+ln -s ~/Code/public-llm-skills/apollo-config  ~/.claude/skills/apollo-config
 ln -s ~/Code/public-llm-skills/smm-mindmap    ~/.claude/skills/smm-mindmap
 ln -s ~/Code/public-llm-skills/worklog-filler ~/.claude/skills/worklog-filler
 ```
