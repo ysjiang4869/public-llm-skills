@@ -1,6 +1,6 @@
 ---
 name: apollo-config
-description: "通过 Apollo Portal Open API 列出 Namespace，查询、修改并发布配置，区分编辑态与已发布态，并对外部写操作执行预览、确认和发布后校验。当用户要求查询 Apollo 配置、修改配置项、查看待发布差异或发布 Namespace 时使用。"
+description: "Manage Apollo (ApolloConfig) via the Portal Open API: list namespaces, query, edit and release configs, distinguish draft vs published state, with preview, confirmation and post-release checks before external writes. 中文：查询/修改/发布 Apollo 配置，区分编辑态与已发布态；当用户要求查询 Apollo 配置、修改配置项、查看待发布差异或发布 Namespace 时使用。"
 ---
 
 # Apollo 配置管理

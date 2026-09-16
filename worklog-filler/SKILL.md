@@ -1,6 +1,6 @@
 ---
 name: worklog-filler
-description: "从工作日报 Excel 中提取指定人员每日工作条目，按需求类型智能拆分归类并折算人天，写入月度工作量统计表。当用户提供日报 Excel 和工作量统计表，要求“填写工作量统计表”“从日报拆解/填写工作量”等时使用。"
+description: "Extract daily work items from a work-report Excel, classify them into allowed requirement types, convert to person-days, and fill a monthly workload statistics spreadsheet. 中文：从工作日报 Excel 提取工作条目，智能拆分归类并折算人天，写入月度工作量统计表；当用户要求“填写工作量统计表”“从日报拆解/填写工作量”等时使用。"
 ---
 
 # 工作量统计表填写

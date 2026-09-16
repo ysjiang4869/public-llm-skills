@@ -1,6 +1,6 @@
 ---
 name: daily-report
-description: "读取腾讯文档在线表格，按日期提取指定小组各成员的原始日报内容（姓名 + 日报原文）。当用户要求拉取/汇总/查看某天日报、提取成员日报原文时使用，如“帮我拉一下今天的日报”“查 5.21 日报”。"
+description: "Fetch raw daily-report entries (member name + original text) by date for a given team from a Tencent Docs online spreadsheet. 中文：读取腾讯文档在线表格，按日期提取指定小组各成员的日报原文；当用户要求拉取/汇总/查看某天日报时使用，如“帮我拉一下今天的日报”“查 5.21 日报”。"
 ---
 
 # 日报提取（腾讯文档）

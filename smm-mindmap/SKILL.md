@@ -1,6 +1,6 @@
 ---
 name: smm-mindmap
-description: 生成思绪思维导图（simple-mind-map）的 .smm / .json 文件，支持节点树、主题、布局、样式、图标、标签、备注、概要、关联线、外框等。当用户要求"生成思维导图""做一张脑图""导出 smm 文件""mind map""导入到思绪思维导图/sxmind"时使用。
+description: "Generate .smm / .json mind-map files for simple-mind-map (思绪思维导图 / sxmind), supporting node trees, themes, layouts, styles, icons, tags, notes, summaries, associations and outlines. 中文：把文本转换成思绪思维导图原生格式文件；当用户要求“生成思维导图”“做一张脑图”“导出 smm 文件”“mind map”“导入到思绪思维导图/sxmind”时使用。"
 ---
 
 # SMM 思维导图生成

@@ -1,6 +1,6 @@
 ---
 name: check-daily-report
-description: "检查指定小组某日腾讯文档日报的填写情况，输出未填写成员名单（有任何内容均视为已填写）。当用户问“今天谁没填日报”“检查/查看日报填写情况”等时使用。"
+description: "Check a team's daily-report completion in a Tencent Docs spreadsheet for a given date and list members who have not filled it (any content counts as filled). 中文：检查指定小组某日腾讯文档日报填写情况，输出未填写成员名单；当用户问“今天谁没填日报”“检查/查看日报填写情况”等时使用。"
 ---
 
 # 日报填写检查

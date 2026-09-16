@@ -1,6 +1,6 @@
 ---
 name: gitlab-issue
-description: "拉取指定 GitLab Issue 及其全部评论，按创建时间排序并标注每条评论中的附件链接（图片、/uploads/ 文件）。当用户要求查看 issue 详情、拉取 issue 评论、检查评论附件时使用，如“看一下 issue 123 的评论”。"
+description: "Fetch a GitLab issue with all its comments in chronological order, annotating attachments (images, /uploads/ files) in each comment. 中文：拉取指定 GitLab Issue 详情及全部评论，按时间排序并标注附件链接；当用户要求查看 issue 详情、拉取 issue 评论、检查评论附件时使用，如“看一下 issue 123 的评论”。"
 ---
 
 # GitLab Issue 处理
