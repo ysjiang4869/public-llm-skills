@@ -37,7 +37,8 @@ python3 scripts/check_daily.py "<DATE>" [--group="<GROUP>"] [--url="<URL>"] [--e
 ## 输出格式
 
 ```
-5月21日 XX组 未填写日报（共 N 人）：
+实际日期：5月21日
+XX组 未填写日报（共 N 人）：
 - 张三
 - 李四
 ```
@@ -45,6 +46,9 @@ python3 scripts/check_daily.py "<DATE>" [--group="<GROUP>"] [--url="<URL>"] [--e
 若全员已填写：
 
 ```
-5月21日 XX组 未填写日报（共 0 人）：
+实际日期：5月21日
+XX组 未填写日报（共 0 人）：
 全员已填写
 ```
+
+若指定日期列不存在，脚本报错退出，不检查其他日期。

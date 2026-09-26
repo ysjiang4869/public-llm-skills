@@ -124,13 +124,10 @@ def main():
         group_col = name_col - 1
 
     tn = month * 100 + day
-    if tn in day_cols:
-        day_col = day_cols[tn]
-    else:
-        closest = min(day_cols.keys(), key=lambda k: abs(k - tn))
-        day_col = day_cols[closest]
-        cm, cd = closest // 100, closest % 100
-        print(f"WARN: {month}.{day:02d} 列不存在，使用最近列 {cm}.{cd:02d}", file=sys.stderr)
+    if tn not in day_cols:
+        print(f"ERROR: {month}.{day:02d} 日期列不存在", file=sys.stderr)
+        sys.exit(1)
+    day_col = day_cols[tn]
 
     in_group = False
     missing = []
@@ -162,7 +159,8 @@ def main():
         if not daily:
             missing.append(name)
 
-    print(f"{month}月{day}日 {group} 未填写日报（共 {len(missing)} 人）：")
+    print(f"实际日期：{month}月{day}日")
+    print(f"{group} 未填写日报（共 {len(missing)} 人）：")
     if missing:
         for name in missing:
             print(f"- {name}")

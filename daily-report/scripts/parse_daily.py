@@ -97,12 +97,12 @@ def main():
         group_col = name_col - 1
 
     tn = month * 100 + day
-    if tn in day_cols:
-        day_col = day_cols[tn]
-    else:
-        closest = min(day_cols.keys(), key=lambda k: abs(k - tn))
-        day_col = day_cols[closest]
-        print(f"WARN: {month}.{day:02d} not found, using closest column", file=sys.stderr)
+    if tn not in day_cols:
+        print(f"ERROR: {month}.{day:02d} 日期列不存在", file=sys.stderr)
+        sys.exit(1)
+    day_col = day_cols[tn]
+
+    print(f"实际日期：{month}月{day}日")
 
     in_group = False
     for i in range(hi + 1, len(rows)):

@@ -43,9 +43,10 @@ python3 scripts/parse_daily.py "<DATE>" [--group="<GROUP>"] < /tmp/daily_report.
 
 ## 输出格式
 
-脚本输出原始数据，每位成员一段：
+脚本第一行输出实际读取的日期，随后输出原始数据，每位成员一段：
 
 ```
+实际日期：5月21日
 张三
 1. xxx
 2. xxx
@@ -59,4 +60,4 @@ python3 scripts/parse_daily.py "<DATE>" [--group="<GROUP>"] < /tmp/daily_report.
 ## 注意
 
 - 跳过请假/调休成员（值为 `调休`、`请假`、`休假`、`—`、`--`）
-- 若指定日期列不存在，自动选取最近列
+- 若指定日期列不存在，报错退出，不读取其他日期
